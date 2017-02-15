@@ -1,5 +1,10 @@
 import pickle
 import tensorflow as tf
+import numpy as np
+from keras.layers.core import Dropout, Dense, Activation, Flatten
+from keras.models import Sequential
+from keras.layers.convolutional import Convolution2D
+from keras.layers.pooling import MaxPooling2D
 # TODO: import Keras layers you need here
 
 flags = tf.app.flags
@@ -40,14 +45,33 @@ def main(_):
 
     print(X_train.shape, y_train.shape)
     print(X_val.shape, y_val.shape)
-
-    # TODO: define your model and hyperparams here
-    # make sure to adjust the number of classes based on
-    # the dataset
-    # 10 for cifar10
-    # 43 for traffic
+    nb_classes = len(np.unique(y_train))
+    model = Sequential()
+    model.add(Convolution2D(512, 1, 1, border_mode='valid',input_shape=(1, 1, 512)))
+    model.add(Activation('relu'))
+    model.add(Flatten())
+    model.add(Dense(nb_classes))
+    model.add(Activation('softmax'))
 
     # TODO: train your model here
+
+    model.compile('adam', 'categorical_crossentropy', ['accuracy'])
+    from sklearn import preprocessing
+    lb = preprocessing.LabelBinarizer()
+    lb.fit(y_train)
+    y_train_one_hot = lb.transform(y_train)
+    a = -0.5
+    b = 0.5
+    _min = np.min(X_train)
+    _max = np.max(X_train)
+    X_train_normalized = a + (b-a) * (X_train - _min)/ (_max - _min)
+    history = model.fit(X_train_normalized, y_train_one_hot, batch_size=128, nb_epoch=512, validation_split=0.2)
+
+    X_val_normalized = a + (b-a) * (X_val - _min)/ (_max - _min)
+    y_val_one_hot = lb.transform(y_val)
+    print('Testing the model.')
+    print('{}'.format(model.metrics_names))
+    print('{}'.format(model.evaluate(X_val_normalized, y_val_one_hot)))
 
 
 # parses flags and calls the `main` function above
